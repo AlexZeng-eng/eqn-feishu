@@ -30,6 +30,7 @@ jobs:
 
       - name: 抓快讯并推送到飞书
         env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_USER_ID: ${{ secrets.FEISHU_USER_ID }}
