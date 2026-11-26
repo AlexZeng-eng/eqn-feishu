@@ -41,8 +41,12 @@ def http_json(url, data=None, headers=None, timeout=20):
         "User-Agent": "eqn-feishu/1.0",
         **(headers or {}),
     })
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "replace")[:300]
+        raise RuntimeError("HTTP %s %s -> %s" % (e.code, url.split("?")[0], detail)) from None
 
 
 # ---------------------------------------------------------------- 过滤规则
@@ -144,12 +148,23 @@ def tenant_token(app_id, app_secret):
 
 
 def push_app(app_id, app_secret, user_id, text):
-    tok = tenant_token(app_id, app_secret)
-    body = {"receive_id": user_id, "msg_type": "text", "content": json.dumps({"text": text}, ensure_ascii=False)}
-    r = http_json("https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id",
-                  body, {"Authorization": "Bearer " + tok})
-    if r.get("code") != 0:
-        raise RuntimeError("飞书发消息失败：%s" % json.dumps(r, ensure_ascii=False)[:200])
+    last = None
+    for attempt in range(3):
+        try:
+            tok = tenant_token(app_id, app_secret)
+            body = {"receive_id": user_id, "msg_type": "text",
+                    "content": json.dumps({"text": text}, ensure_ascii=False)}
+            r = http_json("https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id",
+                          body, {"Authorization": "Bearer " + tok})
+            if r.get("code") != 0:
+                raise RuntimeError("飞书返回 %s" % json.dumps(r, ensure_ascii=False)[:200])
+            return
+        except Exception as e:
+            last = e
+            wait = 2 ** attempt
+            log("推送第 %d 次失败：%s（%d 秒后重试）" % (attempt + 1, e, wait))
+            time.sleep(wait)
+    raise RuntimeError("飞书推送三次都失败：%s" % last)
 
 
 def format_message(hits):
