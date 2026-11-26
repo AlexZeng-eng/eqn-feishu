@@ -1,0 +1,36 @@
+name: EQN 快讯 → 飞书
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: eqn-feishu
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 恢复「推送过哪些」的记录
+        uses: actions/cache@v4
+        with:
+          path: .state.json
+          key: eqn-state-${{ github.run_id }}
+          restore-keys: |
+            eqn-state-
+
+      - name: 抓快讯并推送到飞书
+        env:
+          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          FEISHU_USER_ID: ${{ secrets.FEISHU_USER_ID }}
+        run: python3 eqn_feishu.py
