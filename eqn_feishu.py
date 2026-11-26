@@ -168,7 +168,7 @@ def push_app(app_id, app_secret, user_id, text):
 
 
 def format_message(hits):
-    lines = []
+    lines = ["EQN 快讯 · 新命中 %d 条" % len(hits), ""]
     for it, cats in hits:
         t = datetime.fromisoformat(it["time"].replace("Z", "+00:00")).astimezone()
         head = "【%s】%s" % ("·".join(cats), t.strftime("%m-%d %H:%M"))
@@ -181,7 +181,11 @@ def format_message(hits):
             lines.append(it["url"])
         lines.append("")
     text = "\n".join(lines).strip()
-    return text[:3800] if len(text) > 3800 else text
+    if len(text) > 3800:
+        text = text[:3800] + "\n…（内容过长，已截断）"
+    if "EQN" not in text:
+        text = "EQN 快讯\n" + text
+    return text
 
 
 # ---------------------------------------------------------------- 主流程
