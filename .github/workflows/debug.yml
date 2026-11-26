@@ -1,0 +1,40 @@
+name: debug-feishu-reach
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 飞书消息接口（最小内容）
+        env:
+          AID: ${{ secrets.FEISHU_APP_ID }}
+          SEC: ${{ secrets.FEISHU_APP_SECRET }}
+          UID: ${{ secrets.FEISHU_USER_ID }}
+        run: |
+          TOK=$(curl -sS -X POST https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal \
+            -H 'Content-Type: application/json' \
+            -d "{\"app_id\":\"$AID\",\"app_secret\":\"$SEC\"}" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("tenant_access_token",""))')
+          echo "token len=${#TOK}"
+          echo "--- 只发 hi ---"
+          curl -sS -o /tmp/m.json -w 'HTTP %{http_code}\n' -X POST \
+            "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id" \
+            -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+            -d "{\"receive_id\":\"$UID\",\"msg_type\":\"text\",\"content\":\"{\\\"text\\\":\\\"hi\\\"}\"}"
+          head -c 400 /tmp/m.json; echo
+      - name: 群机器人 webhook 接口是否可达
+        run: |
+          curl -sS -o /tmp/w.json -w 'HTTP %{http_code}\n' -X POST \
+            https://open.feishu.cn/open-apis/bot/v2/hook/00000000-0000-0000-0000-000000000000 \
+            -H 'Content-Type: application/json' -d '{"msg_type":"text","content":{"text":"probe"}}'
+          head -c 300 /tmp/w.json; echo
+      - name: 其他飞书接口（用 token 读自己的信息）
+        env:
+          AID: ${{ secrets.FEISHU_APP_ID }}
+          SEC: ${{ secrets.FEISHU_APP_SECRET }}
+        run: |
+          TOK=$(curl -sS -X POST https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal \
+            -H 'Content-Type: application/json' -d "{\"app_id\":\"$AID\",\"app_secret\":\"$SEC\"}" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("tenant_access_token",""))')
+          curl -sS -o /tmp/a.json -w 'app_info HTTP %{http_code}\n' \
+            "https://open.feishu.cn/open-apis/application/v6/applications/$AID?lang=zh_cn" -H "Authorization: Bearer $TOK"
+          head -c 200 /tmp/a.json; echo
