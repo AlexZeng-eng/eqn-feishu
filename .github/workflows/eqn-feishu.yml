@@ -1,8 +1,7 @@
-name: EQN 快讯 → 飞书
+name: EQN 快讯 → 飞书（手动）
 
+# 定时（schedule）在这个账号上实测完全不触发，所以只保留手动触发，当 Mac 没开时的备份。
 on:
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 concurrency:

@@ -4,7 +4,8 @@
 
 - `eqn_feishu.py`：单文件、零依赖。抓 tradfi + main，过滤、去重、推送。
 - `keywords.json`：关键词与排除词，和 macOS 菜单栏版共用同一套规则。
-- 每 10 分钟由 GitHub Actions 跑一次（也支持手动触发）。
+- 在 GitHub Actions 里**手动点一下**就跑一次（定时触发器在这个账号不工作，已移除）。
+  日常推送由 Mac 上的菜单栏应用负责，云端这个是备份。
 
 ## 本地试跑
 
